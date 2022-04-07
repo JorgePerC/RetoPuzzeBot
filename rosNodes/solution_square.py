@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from sympy import true
 import rospy
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
@@ -204,6 +203,7 @@ class square:
         # Wheel velocity in rad/s
         # self.wr -> Right wheel
         # self.wl -> Left wheel
+        
         # Compute time since last loop
         current_time = rospy.get_time()
         last_time = rospy.get_time()
@@ -240,8 +240,36 @@ class square:
             distTraveled = math.sqrt(self.robot["xPos"]**2 + self.robot["yPos"]**2)
         
         self.stop()
+    def testEncoder(self, targetDist):
+         # Define messages to:
+        msg = Twist()
+        msg.linear.x = 0
+        msg.linear.y = 0
+        msg.linear.z = 0
+        msg.angular.x = 0
+        msg.angular.y = 0
+        msg.angular.z = 0
+
+        distTraveled = 0
+
+        # Compute time since last loop
+        current_time = rospy.get_time()
+        last_time = rospy.get_time()
+
+        while distTraveled < targetDist:
+            current_time = rospy.get_time()
+            d_t = current_time - last_time
+            last_time = current_time
+
+            distTraveled += self.robot["R"] * self.wl*d_t
+            msg.linear.x = 0.1
+
+            # Publish message and sleep
+            self.w_pub.publish(msg)
+            
     
     def velocityControl(self, vel, angle):
+
         v_r = (2*vel + angle*self.robot["L"])/(2*self.robot["R"])
         v_l = (2*vel - angle*self.robot["L"])/(2*self.robot["R"]) 
 
@@ -251,6 +279,6 @@ if __name__ == "__main__":
     sq = square()
 
     try:
-        sq.goToDistance(1)
+        sq.testEncoder(1)
     except rospy.ROSInterruptException:
         None
