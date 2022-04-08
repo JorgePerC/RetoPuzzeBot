@@ -255,17 +255,21 @@ class square:
         # Compute time since last loop
         current_time = rospy.get_time()
         last_time = rospy.get_time()
+        while not rospy.is_shutdown():
+            while distTraveled < targetDist:
+                current_time = rospy.get_time()
+                d_t = current_time - last_time
+                last_time = current_time
 
-        while distTraveled < targetDist:
-            current_time = rospy.get_time()
-            d_t = current_time - last_time
-            last_time = current_time
+                distTraveled += self.robot["R"] * self.wl*d_t
+                msg.linear.x = 0.1
 
-            distTraveled += self.robot["R"] * self.wl*d_t
-            msg.linear.x = 0.1
+                # Publish message and sleep
+                self.w_pub.publish(msg)
+            
+            rospy.signal_shutdown("Square Completed")
+            self.stop()
 
-            # Publish message and sleep
-            self.w_pub.publish(msg)
             
     
     def velocityControl(self, vel, angle):
