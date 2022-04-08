@@ -267,8 +267,12 @@ class square:
                 # Publish message and sleep
                 self.w_pub.publish(msg)
             
-            rospy.signal_shutdown("Square Completed")
+            msg.linear.x = 0.0
+            self.w_pub.publish(msg)
+
             self.stop()
+            rospy.signal_shutdown("Square Completed")
+            
 
             
     
