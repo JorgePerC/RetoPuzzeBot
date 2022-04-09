@@ -1,0 +1,8 @@
+prefix=/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/install
+
+Name: straight_line
+Description: Description of straight_line
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

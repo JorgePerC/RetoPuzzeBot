@@ -1,0 +1,5 @@
+straight_line
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/straight_line/cmake.lock /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/./cmake.lock
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/straight_line/share/straight_line/cmake/straight_lineConfig-version.cmake /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/share/straight_line/cmake/straight_lineConfig-version.cmake
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/straight_line/share/straight_line/cmake/straight_lineConfig.cmake /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/share/straight_line/cmake/straight_lineConfig.cmake
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/straight_line/lib/pkgconfig/straight_line.pc /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/lib/pkgconfig/straight_line.pc

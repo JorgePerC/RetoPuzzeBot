@@ -1,0 +1,1 @@
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/catkin_tools_prebuild/local_setup.bash

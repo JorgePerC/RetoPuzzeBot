@@ -1,0 +1,6 @@
+devel_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel
+install: false
+install_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/install
+profile: default
+source_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/src
+workspace: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square

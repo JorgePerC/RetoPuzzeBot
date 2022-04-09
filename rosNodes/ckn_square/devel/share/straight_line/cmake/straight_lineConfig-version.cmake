@@ -1,0 +1,1 @@
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_square/devel/.private/straight_line/share/straight_line/cmake/straight_lineConfig-version.cmake

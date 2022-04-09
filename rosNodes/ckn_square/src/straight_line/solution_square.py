@@ -251,7 +251,7 @@ class square:
         msg.angular.z = 0
 
         distTraveled = 0
-
+        
         # Compute time since last loop
         current_time = rospy.get_time()
         last_time = rospy.get_time()
