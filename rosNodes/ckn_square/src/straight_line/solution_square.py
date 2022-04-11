@@ -138,16 +138,11 @@ class square:
         # Robot actual coordenates:
         # x = self.robot["xPos"]
         # y = self.robot["yPos"]
-        
-        posErrorDef = 0.03
 
         # Control constants
-        kt = 1
-        ka = 2
-        kb = -1
-        
-        # Restart time
-        init_t = 0
+        kt = 0.5
+        ka = 0.2
+        kb = -0.5
 
         while not rospy.is_shutdown():
             # Compute time since last loop
@@ -155,23 +150,23 @@ class square:
             dt = current_time - last_time
             last_time = current_time
 
-            x_e = self.robot["xPos"] - desPos(1)
-            y_e = self.robot["yPos"] - desPos(2)
+            x_e = self.robot["xPos"] - desPos[0]
+            y_e = self.robot["yPos"] - desPos[1]
             
             # ArcTan(x/y) = angle |   desY - presentY, desX - presentX |
-            objectiveAngle = math.atan2(desPos(2) - self.robot["yPos"], desPos(1) - self.robot["xPos"])
+            objectiveAngle = math.atan2(desPos[1] - self.robot["yPos"], desPos[0] - self.robot["xPos"])
             
             thetae = self.robot["w"] - desAngle
         
-            rho = math.sqrt(x_e^2 + y_e^2)
+            rho = math.sqrt(x_e**2 + y_e**2)
             alpha = objectiveAngle - self.robot["w"]
-            beta = -thetae - alpha
+            beta = - thetae - alpha
 
             v = kt*rho
             omega = ka*alpha + kb*beta
         
             if v > 1:
-                v = 1
+                v = 0.8
             
             if omega > math.pi/2:
                 omega = math.pi/2
@@ -184,10 +179,22 @@ class square:
             msg.angular.z = omega
             
             # write messages
+            self.w_pub.publish(msg)
+            
+            # Stop if desired position has been reached
+            if ( x_e <= 0 and y_e <= 0):
+                msg.linear.x = 0.0
+                self.w_pub.publish(msg)
 
-            init_t = init_t + dt
-            if ((self.robot["xPos"] > desPos(1) - posErrorDef) and (self.robot["xPos"] < desPos(1) + posErrorDef)) and ((self.robot["yPos"] > desPos(2) - posErrorDef) and (self.robot["yPos"] < desPos(2) + posErrorDef)):
+                self.stop()
+                rospy.signal_shutdown("Square Completed")
                 break
+
+            print("     vel :", msg.linear.x, " | ang :", msg.angular.z)
+            print("x_e", x_e, "y_e", y_e)
+            
+            # Wait until execution is needed 
+            self.rate.sleep()
 
     def goToDistance(self, targetDist):
 
@@ -211,35 +218,49 @@ class square:
         # Reset robot variables
         distTraveled = 0
         self.robot["xPos"] = 0
-        self.robot["yPos"] = 0
+        self.robot["yPos"] = 0        
 
-        while distTraveled < targetDist:
-            # Update time
+        while not rospy.is_shutdown():
+            # Compute time since last loop
             current_time = rospy.get_time()
-            d_t = current_time - last_time
-            last_time = current_time
+            last_time = rospy.get_time()
+            print("Initial while")
+            while distTraveled < targetDist:
+                # Update time
+                current_time = rospy.get_time()
+                d_t = current_time - last_time
+                last_time = current_time
 
-            # Robot velocity
-            V = self.robot["R"]*(self.wr + self.wl)/2
-            w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
+                # Robot velocity
+                V = self.robot["R"]*(self.wr + self.wl)/2
+                w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
 
-            x_d = V* math.cos(self.robot["w"])
-            y_d = V* math.sin(self.robot["w"])
-            w_d = w
+                x_d = V* math.cos(self.robot["w"])
+                y_d = V* math.sin(self.robot["w"])
+                w_d = w
 
-            # Update robot pos:
-            self.robot["xPos"] = self.robot["xPos"] + x_d*d_t
-            self.robot["yPos"] = self.robot["yPos"] + y_d*d_t
-            # Update robot angle:
-            self.robot["w"] = self.robot["w"] + w_d*d_t
+                # Update robot pos:
+                self.robot["xPos"] = self.robot["xPos"] + x_d*d_t
+                self.robot["yPos"] = self.robot["yPos"] + y_d*d_t
+                # Update robot angle:
+                self.robot["w"] = self.robot["w"] + w_d*d_t
 
-            # Send mesg to keep velocity:
-            msg.linear.x = 0.2
-            #    msg.angular.z = 0.0
+                # Send mesg to keep velocity:
+                msg.linear.x = 0.2
+                #    msg.angular.z = 0.0
 
-            distTraveled = math.sqrt(self.robot["xPos"]**2 + self.robot["yPos"]**2)
-        
-        self.stop()
+                distTraveled = math.sqrt(self.robot["xPos"]**2 + self.robot["yPos"]**2)
+
+                
+                # Wait until next execution is needed
+                self.rate.sleep()
+            
+            msg.linear.x = 0.0
+            self.w_pub.publish(msg)
+
+            self.stop()
+            rospy.signal_shutdown("Square Completed")
+
     def testEncoder(self, targetDist):
          # Define messages to:
         msg = Twist()
@@ -252,20 +273,25 @@ class square:
 
         distTraveled = 0
         
-        # Compute time since last loop
-        current_time = rospy.get_time()
-        last_time = rospy.get_time()
         while not rospy.is_shutdown():
+            # Compute time since last loop
+            current_time = rospy.get_time()
+            last_time = rospy.get_time()
+            
             while distTraveled < targetDist:
                 current_time = rospy.get_time()
                 d_t = current_time - last_time
                 last_time = current_time
 
                 distTraveled += self.robot["R"] * self.wl*d_t
-                msg.linear.x = 0.1
+                msg.linear.x = 0.2
 
                 # Publish message and sleep
                 self.w_pub.publish(msg)
+                print("\t dist: ", distTraveled, " | vel :", msg.linear.x)
+                
+                # Wait until next execution is needed
+                self.rate.sleep()
             
             msg.linear.x = 0.0
             self.w_pub.publish(msg)
@@ -273,11 +299,12 @@ class square:
             self.stop()
             rospy.signal_shutdown("Square Completed")
             
-
+    def printEncoders(self):
+        while not rospy.is_shutdown():
+            print(self.wr)
+            print(self.wl)
             
-    
     def velocityControl(self, vel, angle):
-
         v_r = (2*vel + angle*self.robot["L"])/(2*self.robot["R"])
         v_l = (2*vel - angle*self.robot["L"])/(2*self.robot["R"]) 
 
@@ -287,6 +314,9 @@ if __name__ == "__main__":
     sq = square()
 
     try:
-        sq.testEncoder(1)
+        #sq.printEncoders() # Works! :D
+        #sq.testEncoder(1)   # Also works! :D
+        go2 = [1,0]
+        sq.controlRobot(go2, 0)
     except rospy.ROSInterruptException:
         None

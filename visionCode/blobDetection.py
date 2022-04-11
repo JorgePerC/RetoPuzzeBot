@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from sympy import im
 
 # Import images 
 
@@ -28,16 +29,24 @@ def image2Blob (imgPath):
     row2 = np.concatenate((thresh1, channelThreshold), axis= 1)
     all = np.concatenate((row1, row2), axis= 0)
 
-    cv2.imshow("Image changes", row1) 
-    cv2.imshow("Image blobs", row2)  
+    cv2.imshow("Image changes", all) 
 
     cv2.waitKey(0)
 
 def addNoise(img):
-    noise = np.random.normal(0, .1, img.shape)
+    
+    for i in range( img.shape[3]):
+        channel =  img[:,:,i]
+        imgVar = np.var(channel)
+        imgAvg = np.average(channel)
+        
+        noise = np.random.normal(imgAvg, .1, img.shape)
+        
+        loosyChannel = noise + channel
+        # Save into the original channel
+        img[:,:,i] = loosyChannel
 
-
-    return noise + img
+    return img
 
 if __name__ == "__main__":
     path = r"./visionCode/sampleImages/road47.png"
