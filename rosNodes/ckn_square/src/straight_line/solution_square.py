@@ -25,7 +25,7 @@ class square:
         rospy.on_shutdown(self.stop)
 
         # Define robot params:
-        self.robot = {"R": 0.05, "L": 0.19, "xPos": 0, "yPos": 0, "w": 0}
+        self.robot = {"R": 0.0505, "L": 0.166, "xPos": 0, "yPos": 0, "w": 0}
 
     # Callbacks for wheel velocities and commands
     def wr_callback(self,msg):
@@ -149,7 +149,7 @@ class square:
             current_time = rospy.get_time()
             dt = current_time - last_time
             last_time = current_time
-
+            
             x_e = self.robot["xPos"] - desPos[0]
             y_e = self.robot["yPos"] - desPos[1]
             
@@ -243,7 +243,7 @@ class square:
                 self.robot["xPos"] = self.robot["xPos"] + x_d*d_t
                 self.robot["yPos"] = self.robot["yPos"] + y_d*d_t
                 # Update robot angle:
-                self.robot["w"] = self.robot["w"] + w_d*d_t
+                self.robot["theta"] = self.robot["theta"] + w_d*d_t
 
                 # Send mesg to keep velocity:
                 msg.linear.x = 0.2
@@ -317,6 +317,7 @@ if __name__ == "__main__":
         #sq.printEncoders() # Works! :D
         #sq.testEncoder(1)   # Also works! :D
         go2 = [1,0]
-        sq.controlRobot(go2, 0)
+        #sq.controlRobot(go2, 0)
+        sq.goToDistance(1)
     except rospy.ROSInterruptException:
         None
