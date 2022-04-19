@@ -376,6 +376,34 @@ class square:
         while not rospy.is_shutdown():
             print(self.wr)
             print(self.wl)
+    
+    def positionRecorder(self):
+        while not rospy.is_shutdown():
+
+            # Update time
+            current_time = rospy.get_time()
+            d_t = current_time - last_time
+            last_time = current_time
+
+            # Robot velocity
+            V = self.robot["R"]*(self.wr + self.wl)/2
+            w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
+
+            x_d = V* math.cos(self.robot["theta"])
+            y_d = V* math.sin(self.robot["theta"])
+            w_d = w
+
+            # Update robot pos:
+            self.robot["xPos"] += x_d*d_t
+            self.robot["yPos"] += y_d*d_t
+            # Update robot angle:
+            self.robot["theta"] +=  w_d*d_t
+
+            distTraveled = math.sqrt(self.robot["xPos"]**2 + self.robot["yPos"]**2)
+            print("Distance", distTraveled)
+            # Wait until next execution is needed
+            self.rate.sleep()
+
             
     def velocityControl(self, vel, angle):
         v_r = (2*vel + angle*self.robot["L"])/(2*self.robot["R"])
