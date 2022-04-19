@@ -401,6 +401,7 @@ class square:
 
             distTraveled = math.sqrt(self.robot["xPos"]**2 + self.robot["yPos"]**2)
             print("Distance", distTraveled)
+            print("X: ", self.robot["xPos"], " | Y: ", self.robot["yPos"])
             # Wait until next execution is needed
             self.rate.sleep()
 
