@@ -386,7 +386,7 @@ class square:
             last_time = current_time
 
             # Robot velocity
-            V = self.robot["R"]*(self.wr + self.wl)/2
+            V = self.robot["R"]*(self.wr + self.wl)/2 # = (self.wr + self.wl)/2
             w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
 
             x_d = V* math.cos(self.robot["theta"])

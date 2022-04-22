@@ -1,3 +1,4 @@
+from audioop import avg
 from ssl import CHANNEL_BINDING_TYPES
 import cv2
 import numpy as np
@@ -76,6 +77,7 @@ def image2Blob_HSV (imgPath):
     cv2.waitKey(0)
 
 def cleanNoise(imgPath):
+    # https://docs.opencv.org/4.x/d4/d13/tutorial_py_filtering.html
     img = cv2.imread(imgPath)
 
     shape = img.shape
@@ -85,10 +87,17 @@ def cleanNoise(imgPath):
 
     noisy = sp_noise(grayImg, 0.04)
     
+    kernel = (7,7) # Kernel, how many pixels will be blured at the same time
+    gausBlur = cv2.GaussianBlur(noisy, kernel, 0) # O std
+
+    avgBlur = cv2.blur(noisy, kernel)
+
     # Merge all images into a sigle one
     row1 = np.concatenate((grayImg, noisy), axis= 1)
-    
-    cv2.imshow("Image noise", row1)
+    row2 = np.concatenate((gausBlur, avgBlur), axis= 1)
+    all = np.concatenate((row1, row2), axis= 0)
+
+    cv2.imshow("Image noise", all)
 
     cv2.waitKey(0)
 
@@ -143,8 +152,10 @@ def addNoise(img):
     return img
 
 if __name__ == "__main__":
-    path = r"./visionCode/sampleImages/road46.png"
-    #image2Blob_RGB(path)
+    path = r"./visionCode/sampleImages/road47.png"
+    
+    #image2Blob_HSV(path)
+    
     cleanNoise(path)
 
 
