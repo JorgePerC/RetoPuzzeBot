@@ -1,0 +1,26 @@
+function [x_dot, y_dot, theta_dot, steer_dot] = centerPoint(v, w)
+
+% Global robot variables:
+global robotConts
+
+% Robot variables:
+theta = robotConts(5);
+steer = robotConts(6);
+
+L = robotConts(3) + robotConts(4);
+
+splipAngle = arctan(l_r * tan(steer) / L);
+
+S = L / tan(steer);
+
+R = S / cos(splipAngle);
+
+theta_dot = v / R;
+
+
+x_dot = v * cos(splipAngle + theta);
+y_dot = v* sin(splipAngle + theta);
+
+steer_dot = w;
+
+end

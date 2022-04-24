@@ -1,0 +1,95 @@
+close all;
+clc;
+
+global robotConts;
+            % x, y, lr, lf, 𝜃, 𝛿
+robotConts = [0, 0,  2,  2, 0, 0];
+
+bMap = readtable('ourMap.txt');
+
+BinaryMap = table2array(bMap);
+
+if exist('BinaryMap', 'var') == 0 
+    BinaryMap = makemap(1000);
+    writematrix(BinaryMap, 'ourMap.txt')
+end 
+
+figure() 
+map = binaryOccupancyMap(rot90(transpose(BinaryMap)), 1000/50);
+
+show(map)
+nodes = 150;
+
+tic 
+planner = mobileRobotPRM(map, nodes);
+toc 
+
+figure()
+show(planner)
+startLocation = [5 30];
+endLocation = [6 0];
+
+tic
+path = findpath(planner, startLocation, endLocation)
+toc
+
+figure()
+show(planner) 
+
+d_t = 0.1;
+
+
+
+kturn = .05;
+klinear = .5;
+desiredPos = path(1,:)
+L = robotConts(3)+robotConts(4);
+
+for t = 0: d_t: 23
+    %% Robot control 
+    
+    x_e = desiredPos(1, 1) - robotConts(1);
+    y_e = desiredPos(1, 2) - robotConts(2);
+    
+    theta_e = atan2(y_e, x_e) - robotConts(5); 
+    
+    dist_e = hypot(x_e, y_e);
+
+    v = dist_e * klinear;
+    w = atan(2*L*sin(theta_e)/dist_e);
+    %w = theta_e * kturn*d_t;
+
+    if abs(x_e) <= 1 && abs(y_e) <= 1 
+        print("Llegó")
+        break
+    end
+
+    %% Update robot positon
+    [x_dot, y_dot, theta_dot, steer_dot] = centerPoint(v, w);
+
+    robotConts(1) = robotConts(1) + x_dot * d_t;
+    robotConts(2) = robotConts(2) + y_dot * d_t;
+    robotConts(5) = robotConts(5) + theta_dot * d_t;
+        % Narrow down theta angles:
+    if robotConts(5) > pi
+        robotConts(5) = robotConts(5) - 2*pi;
+    elseif robotConts(5) < -pi
+        robotConts(5) = robotConts(5) + 2*pi;
+    end
+    robotConts(6) = robotConts(6) + steer_dot * d_t;
+    % Limit the steering angle, since it cannot be more than
+    % +- 30 degrees
+    % http://street.umn.edu/VehControl/javahelp/HTML/Definition_of_Vehicle_Heading_and_Steeing_Angle.htm
+    if robotConts(6) > pi/6
+        robotConts(6) = pi/6;
+    elseif robotConts(6) < -pi/6
+        robotConts(6) = -pi/6;
+    end
+
+    % Graph:
+    figure(5)
+    scatter(robotConts(1), robotConts(2))
+    hold on
+    %drawnow
+end
+print("acabo")
