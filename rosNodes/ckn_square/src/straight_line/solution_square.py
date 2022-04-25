@@ -26,7 +26,7 @@ class square:
         rospy.on_shutdown(self.stop)
 
         # Define robot params:
-        self.robot = {"R": 0.0505, "L": 0.166, "xPos": 0, "yPos": 0, "theta": 0}
+        self.robot = {"R": 0.05, "L": 0.19, "xPos": 0, "yPos": 0, "theta": 0}
 
     # Callbacks for wheel velocities and commands
     def wr_callback(self,msg):
@@ -121,7 +121,7 @@ class square:
         msg.angular.z = 0
         self.w_pub.publish(msg)
     
-    def controlRobot(self, desPos, desAngle):
+    def go2Pose(self, desPos, desAngle):
         
         current_time = rospy.get_time()
         last_time = rospy.get_time()
@@ -135,18 +135,16 @@ class square:
         msg.angular.y = 0
         msg.angular.z = 0
 
-        # Robot actual coordenates:
-        # x = self.robot["xPos"]
-        # y = self.robot["yPos"]
-
         # Control constants
-        kt = 0.7
+        kt = 0.5
         ka = 0.2
-        kb = -0.3
+        kb = 0.4
+
         x_e = 1
         y_e = 1
         print("in control robot")
-        while not (abs(x_e) <= 0.005 and abs(y_e) <= 0.005):
+        
+        while not (abs(x_e) <= 0.1 and abs(y_e) <= 0.1):
 
             # Compute time since last loop
             current_time = rospy.get_time()
@@ -157,22 +155,25 @@ class square:
             x_e =  desPos[0] - self.robot["xPos"]
             y_e =  desPos[1] - self.robot["yPos"]
             
-            # ArcTan(x/y) = angle |   desY - presentY, desX - presentX |
-            objectiveAngle = math.atan2(desPos[1] - self.robot["yPos"], desPos[0] - self.robot["xPos"])
-            # Error to angle from desAngle
-            thetae = self.robot["theta"] - desAngle
-            # Distance to objective
-            rho = math.sqrt(x_e**2 + y_e**2)
-            # Theta to objectivePos
-            alpha = objectiveAngle - self.robot["theta"]
-            # Control angle (output)
-            beta = - thetae - alpha
+            # ArcTan(x/y) = angle | desY - presentY, desX - presentX |
+            objectiveAngle = math.atan2(y_e, x_e)
 
-            v = kt*rho
-            omega = kb*( self.robot["theta"] - objectiveAngle) #ka*alpha + kb*beta #
+            # Error to angle 2 desPoint
+            theta_e = objectiveAngle - self.robot["theta"]
+
+            # Distance to objective
+            dist2Objective = math.hypot(x_e, y_e)
+
+            # Angle to desAngle
+            alpha_e = desAngle - self.robot["theta"]
+            # Control angle (output)
+            beta = theta_e + alpha_e
+
+            v = kt*dist2Objective
+            omega = kb*theta_e #ka*alpha + kb*beta #
         
-            if v > 1:
-                v = 0.8
+            if v > 0.6:
+                v = 0.6
             
             if omega > math.pi/2:
                 omega = math.pi/2
@@ -188,6 +189,7 @@ class square:
             self.w_pub.publish(msg)
 
             #-------------------------------------------
+            # Estimate robot position:
             # Robot velocity
             V, w = self.getRobotVels()
 
@@ -198,22 +200,23 @@ class square:
             # Update robot pos:
             self.robot["xPos"] += x_d*d_t
             self.robot["yPos"] += y_d*d_t
+
             # Update robot angle:
             self.robot["theta"] +=  w_d*d_t
-            # COndition to remain on the tang2 boundaries
+
+            # Condition to keep robot angle as 1 loop
             if self.robot["theta"] > math.pi:
                 self.robot["theta"] -= 2*math.pi
             elif self.robot["theta"] < -math.pi:
                 self.robot["theta"] += 2*math.pi
-
-            print("     vel :", msg.linear.x, " | ang :", msg.angular.z)
-            print("x_e", x_e, "y_e", y_e, "theta_e", beta )
+            
+            # Print variables to analyse later
+            print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e, "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
             
             # Wait until execution is needed 
             self.rate.sleep()
         #stop when finished
         self.stop()
-        rospy.Duration.from_sec(1)
         
     def getRobotVels(self):
          # Robot velocity
@@ -221,7 +224,7 @@ class square:
         w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
         return V, w
 
-    def goToDistance(self, targetDist):
+    def go2Distance(self, targetDist):
 
         # Define messages to:
         msg = Twist()
@@ -334,8 +337,8 @@ class square:
         self.stop()
         rospy.Duration.from_sec(1)
 
-    def testEncoder(self, targetDist):
-         # Define messages to:
+    def targetDistanceEncoder(self, targetDist):
+        # Define messages to:
         msg = Twist()
         msg.linear.x = 0
         msg.linear.y = 0
@@ -370,14 +373,14 @@ class square:
             self.w_pub.publish(msg)
 
             self.stop()
-            rospy.signal_shutdown("Square Completed")
+            rospy.signal_shutdown("Target distance reached")
             
-    def printEncoders(self):
+    def printEncoderValues(self):
         while not rospy.is_shutdown():
             print(self.wr)
             print(self.wl)
     
-    def positionRecorder(self):
+    def positionEstimationEncoders(self):
         while not rospy.is_shutdown():
 
             # Update time
@@ -386,7 +389,7 @@ class square:
             last_time = current_time
 
             # Robot velocity
-            V = self.robot["R"]*(self.wr + self.wl)/2 # = (self.wr + self.wl)/2
+            V = self.robot["R"]*(self.wr + self.wl)/2
             w = self.robot["R"]*(self.wr - self.wl)/self.robot["L"]
 
             x_d = V* math.cos(self.robot["theta"])
@@ -406,7 +409,7 @@ class square:
             self.rate.sleep()
 
             
-    def velocityControl(self, vel, angle):
+    def wheelVelocityControl(self, vel, angle):
         v_r = (2*vel + angle*self.robot["L"])/(2*self.robot["R"])
         v_l = (2*vel - angle*self.robot["L"])/(2*self.robot["R"]) 
 
@@ -418,17 +421,17 @@ if __name__ == "__main__":
     try:
         #sq.printEncoders() # Works! :D
         #sq.testEncoder(1)   # Also works! :D
-        go2 = [0, 0.5]
-        sq.controlRobot(go2, 0)
+        # go2 = [5, 0]
+        # sq.go2Pose(go2, 0)
 
-        go2 = [0.5, 0.5]
-        sq.controlRobot(go2, 0)
+        go2 = [5, 5]
+        sq.go2Pose(go2, math.pi/2)
 
-        go2 = [0.5, 0]
-        sq.controlRobot(go2, 0)
+        go2 = [0, 5]
+        sq.go2Pose(go2, math.pi)
 
         go2 = [0, 0]
-        sq.controlRobot(go2, 0)
+        sq.go2Pose(go2, -math.pi/2)
         # #sq.goToDistance(1)
     except rospy.ROSInterruptException:
         None
