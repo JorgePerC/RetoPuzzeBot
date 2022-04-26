@@ -1,9 +1,17 @@
 close all;
+clear all;
 clc;
 
-global robotConts;
-            % x, y, lr, lf, 𝜃, 𝛿
-robotConts = [0, 0,  2,  2, 0, 0];
+global robot d_t;
+
+L = 0.5;
+R = 1;
+initX = 5;
+initY = 30;
+intit_w = 3/2*pi;
+
+% Constants for our diff drive 
+robot = [ L, R, initX ,initY, intit_w];
 
 bMap = readtable('ourMap.txt');
 
@@ -36,72 +44,119 @@ toc
 figure()
 show(planner) 
 
+i = 1;
 d_t = 0.1;
 
-% Set the robot initial position and angle:
-robotConts(1) = 0;
-robotConts(2) = 35;
-robotConts(5) = -pi/2;
-L = robotConts(3) + robotConts(4);
+robotPathX(1) = 0;
+robotPathY(1) = 0;
+suggTrayectoryX(1) = 0;
+suggTrayectoryX(1) = 0;
 
-kturn = 2;
-klinear = .5;
+
+% Control 
+kt = 0.8;
+ka = 1;
+
+velX_last = 0;
+velY_last = 0;
+velR_last = 1;
+
+timeP2P = 13;
 
 for pos = 1: numel(path(:,1))
+    %% Calculate the trayectory for each point in the path
 
-desiredPos = path(pos,:) %[10, 10]
-
-for t = 0: d_t: 30
-    %% Robot control 
+    desiredPos = path(pos,:); %[10, 10]
     
-    x_e = desiredPos(1, 1) - robotConts(1);
-    y_e = desiredPos(1, 2) - robotConts(2);
+    thetaV = atan2(desiredPos(1, 2) - robot(4), desiredPos(1, 1) - robot(3));
+    vxf = velR_last*cos(thetaV);
+    vyf = velR_last*sin(thetaV);
+
+                % TODO: Try how it behaves with lastPointX
+    Px = GenPoly(robot(3), ... % Robot actual position in x
+                desiredPos(1, 1), ... % Next mini-point x
+                velX_last, ... % Robot actual velocity, to avoid constant stops | velX_last
+                vxf, ...
+                0,0, ... % At 1st run, from stop and then keep vel
+                timeP2P); % YOLO
+
+    Py = GenPoly(robot(4), ... % Robot actual position in y
+                desiredPos(1, 2), ... % Next mini-point y
+                velY_last, ... % Robot actual velocity, to avoid constant stops
+                vyf, ...
+                0,0, ... % At 1st run, from stop and then keep vel
+                timeP2P); % YOLO
     
-    theta_e = atan2(y_e, x_e) - robotConts(5); 
+    %% Navigate through trayectory
+    t = 0;
+
+    while t <= timeP2P
+        % i stands for iteration
+
+        x_i = Px(1)*t^5 + Px(2)*t^4 + Px(3)*t^3 + Px(4)*t^2 + Px(5)*t + Px(6);
+        % We believe these are useless
+        vx_i = 5*Px(1)*t^4 + 4*Px(2)*t^3 + 3*Px(3)*t^2 + 2*Px(4)*t + Px(5);
+        ax_i = 20*Px(1)*t^3 + 12*Px(2)*t^2 + 6*Px(3)*t + 2*Px(4);
     
-    dist_e = hypot(x_e, y_e);
+        y_i = Py(1)*t^5 + Py(2)*t^4 + Py(3)*t^3 + Py(4)*t^2 + Py(5)*t + Py(6);
+        % We believe these are useless
+        vy_i = 5*Py(1)*t^4 + 4*Py(2)*t^3 + 3*Py(3)*t^2 + 2*Py(4)*t + Py(5);
+        ay_i = 20*Py(1)*t^3 + 12*Py(2)*t^2 + 6*Py(3)*t + 2*Py(4);    
+    
+            %% Robot control 
+            
+        x_e = x_i - robot(3);
+        y_e = y_i - robot(4);
+        
+        theta_e = atan2(y_e, x_e) - robot(5); 
+        
+        dist_e = hypot(x_e, y_e);
 
-    v = dist_e * klinear;
-    w = atan(2*L*sin(theta_e)/dist_e)*kturn;
-    %w = theta_e * kturn*d_t;
-
-    if abs(x_e) <= 0.5 && abs(y_e) <= 0.5 
-        break
+        v = kt*dist_e;
+        w = ka*theta_e;
+    
+        if v > 1
+            v = 1;
+        end
+        if w > pi/2
+            w = pi/2;
+        end
+        if w < -pi/2
+            w = -pi/2;
+        end
+        
+        if abs(desiredPos(1, 1) -robot(3)) <= 0.5 && abs(desiredPos(1, 2) -robot(4)) <= 0.5 
+            break
+        end
+        
+            %% Update robot positon
+            [x_dot, y_dot] = Vel_AngleCtrlDiffDrive(v,w);
+        
+            robotPathX(i) = robot(3);
+            robotPathY(i) = robot(4);
+            suggTrayectoryX(i)  = x_i;
+            suggTrayectoryY(i)  = y_i;
+            
+            %drawnow
+        %end
+        t = t + d_t;
+        i = i+1;
+        % Update last velocity TODO: VERIFY
+        velX_last = x_dot; %vy_i
+        velY_last = y_dot; %vy_i | vyf
+        velR_last = v;
     end
-    % limit v values
-    if v < -1 
-        v = -1;
-    elseif v > 1 
-        v = 1;
-    end
-
-    %% Update robot positon
-    [x_dot, y_dot, theta_dot, steer_dot] = centerPoint(v, w);
-
-    robotConts(1) = robotConts(1) + x_dot * d_t;
-    robotConts(2) = robotConts(2) + y_dot * d_t;
-    robotConts(5) = robotConts(5) + theta_dot * d_t;
-        % Narrow down theta angles:
-    if robotConts(5) > pi
-        robotConts(5) = robotConts(5) - 2*pi;
-    elseif robotConts(5) < -pi
-        robotConts(5) = robotConts(5) + 2*pi;
-    end
-    robotConts(6) = robotConts(6) + steer_dot * d_t;
-    % Limit the steering angle, since it cannot be more than
-    % +- 30 degrees
-    % http://street.umn.edu/VehControl/javahelp/HTML/Definition_of_Vehicle_Heading_and_Steeing_Angle.htm
-    if robotConts(6) > pi/6
-        robotConts(6) = pi/6;
-    elseif robotConts(6) < -pi/6
-        robotConts(6) = -pi/6;
-    end
-
-    % Graph:
-    figure(5)
-    scatter(robotConts(1), robotConts(2))
-    hold on
-    %drawnow
+    
 end
 
-end
+
+% Graph:
+figure(5)
+show(planner) 
+hold on
+scatter(robotPathX, robotPathY)
+
+figure(6)
+show(planner)
+hold on
+scatter(suggTrayectoryX, suggTrayectoryY)
