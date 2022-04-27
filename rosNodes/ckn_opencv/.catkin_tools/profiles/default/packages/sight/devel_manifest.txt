@@ -1,0 +1,5 @@
+sight
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/.private/sight/cmake.lock /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/./cmake.lock
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/.private/sight/share/sight/cmake/sightConfig.cmake /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/share/sight/cmake/sightConfig.cmake
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/.private/sight/share/sight/cmake/sightConfig-version.cmake /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/share/sight/cmake/sightConfig-version.cmake
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/.private/sight/lib/pkgconfig/sight.pc /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/lib/pkgconfig/sight.pc

@@ -1,0 +1,8 @@
+prefix=/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/install
+
+Name: sight
+Description: Description of sight
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

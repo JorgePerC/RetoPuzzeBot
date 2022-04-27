@@ -1,0 +1,6 @@
+devel_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel
+install: false
+install_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/install
+profile: default
+source_space: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/src
+workspace: /home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv

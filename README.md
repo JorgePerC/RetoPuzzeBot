@@ -53,3 +53,7 @@ I recommend writing those values on yout `.bashrc`. Bc this project is going to 
 * manchester -> Pull all the code from the original repo 
     * Update submodule `git submodule update --init` followed by: `git submodule update --remote --merge`
 * hwdev -> develop course activities for Maltab/Python/C++
+
+
+## Create packages: 
+* catkin_create_pkg pkgName std_msgs rospy

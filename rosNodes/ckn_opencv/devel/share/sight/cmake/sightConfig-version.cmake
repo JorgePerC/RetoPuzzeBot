@@ -1,0 +1,1 @@
+/home/jorgepc/Documents/RetoPuzzeBot/rosNodes/ckn_opencv/devel/.private/sight/share/sight/cmake/sightConfig-version.cmake
