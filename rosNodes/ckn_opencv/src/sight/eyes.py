@@ -11,7 +11,7 @@ def gstreamer_pipeline(
     display_width=1280,
     display_height=720,
     framerate=60,
-    flip_method=0, ):
+    flip_method=0 ):
     return (
         "nvarguscamerasrc ! "
         "video/x-raw(memory:NVMM), "
@@ -52,6 +52,7 @@ class cameraPublisher:
     def captureAndSend(self):
         while not rospy.is_shutdown():
             readSuccess, frame = self.cap.read()
+            print(type(frame))
  
             self.image_pub.publish(frame)
             self.rate.sleep()

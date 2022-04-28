@@ -1,0 +1,33 @@
+#File: inverted.fll
+Engine: tip
+InputVariable: angle
+  enabled: true
+  range: 0.000 10.000
+  lock-range: false
+  term: 
+OutputVariable: power
+  enabled: true
+  range: 0.000 100.000
+  lock-range: false
+  aggregation: Maximum
+  defuzzifier: Centroid 100
+  default: nan
+  lock-previous: false
+  term: 
+  term: 
+  term: 
+RuleBlock: mamdani
+  enabled: true
+  conjunction: none
+  disjunction: none
+  implication: AlgebraicProduct
+  activation: General
+
+  rule: if angle is neg_high and velocity is neg_high then force is neg_high
+  rule: if angle is neg_low and velocity is neg_high then force is neg_high
+  rule: if angle is zero and velocity is neg_high then force is neg_high
+  rule: if angle is pos_low and velocity is neg_high then force is neg_low
+  rule: if angle is pos_high and velocity is neg_high then force is zero
+
+  
+  
