@@ -26,7 +26,7 @@ class visionCelestial:
         #setup node
         rospy.init_node("VisionBasicc")
         self.rate = rospy.Rate(10)
-        print('metodo 1')
+        
 
     def callback(self, data):
         try:
@@ -46,7 +46,7 @@ class visionCelestial:
         except CvBridgeError as e:
             print(e)
 
-        print('metodo 2')
+        
     def stop (self):
         cv2.destroyAllWindows()
 
