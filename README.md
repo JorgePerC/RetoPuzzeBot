@@ -56,4 +56,6 @@ I recommend writing those values on yout `.bashrc`. Bc this project is going to 
 
 
 ## Create packages: 
-* catkin_create_pkg pkgName std_msgs rospy
+* catkin_create_pkg pkgName std_msgs 
+
+## http://wiki.ros.org/image_view

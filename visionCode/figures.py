@@ -17,6 +17,9 @@ while cap.isOpened():
     # We need to erode the image bc if don't, then, the circle won't
     # be detected
     bordesCanny =  cv2.dilate(bordesCanny, kernel, iterations=1)
+    # SOmething to try: from the original gray image, restar the cannycorder
+    # May give a better result. 
+
     circles = cv2.HoughCircles(bordesCanny, 
                             cv2.HOUGH_GRADIENT_ALT, # for better accuracy
                             1, # for evalualuating the image on same dimentions
@@ -53,8 +56,8 @@ while cap.isOpened():
     except:
         #print("Not enough circles where found")
         pass
+
     # Merge all images into a sigle one
-    
     grayImg = cv2.cvtColor(grayImg, cv2.COLOR_GRAY2BGR)
     bordesCanny = cv2.cvtColor(bordesCanny, cv2.COLOR_GRAY2BGR)
 
