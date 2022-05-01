@@ -6,16 +6,17 @@ from cv2 import line
 import numpy as np
 import math
 
+from rospy import on_shutdown
+
 def addMarker(img, p1, p2):
-    centerX = (p1[0] +p2[0])/2
-    centerY = (p1[1] +p2[1])/2
-    cv2.line(img, (centerX+5, centerY), (centerX-5, centerY), (0,0,255), 2)#), cv2.LINE_AA)
-    cv2.line(img, (centerX, centerY+5), (centerX, centerY-5), (0,0,255), 2)#), cv2.LINE_AA)
+    centerX = int((p1[0] + p2[0])/2)
+    centerY = int((p1[1] + p2[1])/2)
+    cv2.line(img, (centerX + 10, centerY), (centerX - 10, centerY), (0,0,255), 2)#), cv2.LINE_AA)
+    cv2.line(img, (centerX, centerY + 10), (centerX, centerY - 10), (0,0,255), 2)#), cv2.LINE_AA)
 
 def lines(frame):
-
+    # https://medium.com/@tomasz.kacmajor/hough-lines-transform-explained-645feda072ab
     result = frame.copy()
-
     result =cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
     lines =  cv2.HoughLines(frame, rho = 5, theta = np.pi/180, threshold = 400, srn=0, stn=0 ) #, min_theta = (0.6)*np.pi, max_theta = 3*np.pi/2
@@ -36,39 +37,77 @@ def lines(frame):
     
     return result 
 
+def linesProbalistic(frame):
+    
+    img = frame.copy()
+    img =cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    
+    lines = cv2.HoughLinesP(frame, rho = 6, theta = np.pi/180, threshold = 350, maxLineGap=80)
+
+    # draw Hough lines
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv2.line(img, (x1, y1), (x2, y2), (255, 255 , 0), 3)
+    
+    return img
+
+
+def verticalSplitImg(frame, ratio):
+
+    dif = ratio-1
+    # height calculus:
+    h = frame.shape[0]/ratio
+    ceros = np.zeros((int(h), frame.shape[1]), dtype = np.uint8)
+
+    ones = np.ones((int(h)*dif, frame.shape[1]), dtype = np.uint8)
+
+    myMask = np.concatenate((ceros, ones), axis = 0)
+
+    frame = cv2.bitwise_and(frame, frame, mask = myMask)
+
+    return frame
+
 path = r"./visionCode/sampleImages/normalSlow.mp4"
 cap = cv2.VideoCapture(path) 
 white1 = np.array([0, 0, 0], np.uint8)
 white2 = np.array([180, 10, 0], np.uint8)
+
 while cap.isOpened():
     ret, frame = cap.read()
+
+    # To limit our working area
+    # In this case, we'll be working with only
+    # the upper part of the image, to reduce noise
+    frame = verticalSplitImg(frame, 3)
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     # Limit colors:
     hueThreshold = cv2.inRange(hsv,white1, white2 )
+    
+    # Gray dodoos ================================
     # RGB -> Gray
     grayImg = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Gray dodoos
-
     # Gray + blur
     grayImg = cv2.medianBlur(grayImg, 5)
-
     # Gray -> Threshold
     ret, thresh = cv2.threshold(grayImg, 180, 255, cv2.THRESH_TOZERO) # , works great
                                                 #cv2.THRESH_OTSU+cv2.THRESH_TOZERO) # cv2.THRESH_TOZERO, works great
                                                 # cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU
+                            
+    # Find inital line segments ==================
     canny = cv2.Canny(thresh, 100, 200) 
-    hough = lines(canny)
+    # Find lines
+    hough = linesProbalistic(canny)
 
     # Merge all images into a sigle one
     grayImg = cv2.cvtColor(grayImg, cv2.COLOR_GRAY2BGR)
     thresh = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
     hueThreshold = cv2.cvtColor(hueThreshold, cv2.COLOR_GRAY2BGR)
-    #hough = cv2.cvtColor(hough, cv2.COLOR_GRAY2BGR)
+    canny = cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)
     
 
-    row1 = np.concatenate((frame, hueThreshold), axis= 1)
+    row1 = np.concatenate((frame, hough), axis= 1)
     cv2.imshow("Frame", row1)
     
     k = cv2.waitKey(1) & 0xFF
