@@ -121,6 +121,84 @@ class square:
         msg.angular.z = 0
         self.w_pub.publish(msg)
     
+    def updateRobot(self, d_t):
+        #-------------------------------------------
+        # Estimate robot position:
+        # Robot velocity
+        V, w = self.getRobotVels()
+
+        x_d = V* math.cos(self.robot["theta"])
+        y_d = V* math.sin(self.robot["theta"])
+        w_d = w
+
+        # Update robot pos:
+        self.robot["xPos"] += x_d*d_t
+        self.robot["yPos"] += y_d*d_t
+
+        # Update robot angle:
+        self.robot["theta"] +=  w_d*d_t
+
+        # Condition to keep robot angle as 1 loop
+        if self.robot["theta"] > math.pi:
+            self.robot["theta"] -= 2*math.pi
+        elif self.robot["theta"] < -math.pi:
+            self.robot["theta"] += 2*math.pi
+    
+    def pid_PoseController(self, x_e, y_e, theta_e, desAngle, d_t, kt = 0.5, ka = 0.2, kb = 0.4):
+        
+        dist2Objective = math.hypot(x_e, y_e)
+        alpha_e = desAngle - self.robot["theta"]
+
+        # Proportional to error
+        pVal = dist2Objective*kt
+        # Error integral
+            # Be careful with the integral windup
+        iVal += dist2Objective*d_t
+        # Rate of change of error
+        dVal =  
+
+        # Adjust to system's saturation
+        if v > 0.6:
+            v = 0.6
+        elif v < -0.6:
+            v = -0.6
+        if omega > math.pi/2:
+            omega = math.pi/2
+        elif omega < -math.pi/2:
+            omega = -math.pi/2
+
+        return v, omega
+
+
+    def p_PoseController(self, x_e, y_e, theta_e, desAngle, kt = 0.5, ka = 0.2, kb = 0.4):
+        # Control constants
+        
+        # Distance to objective
+        dist2Objective = math.hypot(x_e, y_e)
+
+        # Angle to desAngle
+        alpha_e = desAngle - self.robot["theta"]
+        # Control angle (output)
+        beta = theta_e + alpha_e
+
+        v = kt*dist2Objective
+        omega = kb*theta_e #ka*alpha + kb*beta #
+    
+        # Limit vel output values
+        if v > 0.6:
+            v = 0.6
+        elif v < -0.6:
+            v = -0.6
+        
+        # Limit rotational vel output values
+        if omega > math.pi/2:
+            omega = math.pi/2
+        
+        if omega < -math.pi/2:
+            omega = -math.pi/2
+        
+        return v, omega
+        
     def go2Pose(self, desPos, desAngle):
         
         current_time = rospy.get_time()
@@ -135,14 +213,9 @@ class square:
         msg.angular.y = 0
         msg.angular.z = 0
 
-        # Control constants
-        kt = 0.5
-        ka = 0.2
-        kb = 0.4
-
+        
         x_e = 1
         y_e = 1
-        print("in control robot")
         
         while not (abs(x_e) <= 0.1 and abs(y_e) <= 0.1):
 
@@ -157,61 +230,22 @@ class square:
             
             # ArcTan(x/y) = angle | desY - presentY, desX - presentX |
             objectiveAngle = math.atan2(y_e, x_e)
-
             # Error to angle 2 desPoint
             theta_e = objectiveAngle - self.robot["theta"]
 
-            # Distance to objective
-            dist2Objective = math.hypot(x_e, y_e)
-
-            # Angle to desAngle
-            alpha_e = desAngle - self.robot["theta"]
-            # Control angle (output)
-            beta = theta_e + alpha_e
-
-            v = kt*dist2Objective
-            omega = kb*theta_e #ka*alpha + kb*beta #
-        
-            if v > 0.6:
-                v = 0.6
-            
-            if omega > math.pi/2:
-                omega = math.pi/2
-            
-            if omega < -math.pi/2:
-                omega = -math.pi/2
-            
+            v, omega = self.p_PoseController(x_e, y_e, theta_e, desAngle)
         
             msg.linear.x = v
             msg.angular.z = omega
             
             # write messages
             self.w_pub.publish(msg)
+            # Robot estimation
+            self.updateRobot(d_t)
 
-            #-------------------------------------------
-            # Estimate robot position:
-            # Robot velocity
-            V, w = self.getRobotVels()
-
-            x_d = V* math.cos(self.robot["theta"])
-            y_d = V* math.sin(self.robot["theta"])
-            w_d = w
-
-            # Update robot pos:
-            self.robot["xPos"] += x_d*d_t
-            self.robot["yPos"] += y_d*d_t
-
-            # Update robot angle:
-            self.robot["theta"] +=  w_d*d_t
-
-            # Condition to keep robot angle as 1 loop
-            if self.robot["theta"] > math.pi:
-                self.robot["theta"] -= 2*math.pi
-            elif self.robot["theta"] < -math.pi:
-                self.robot["theta"] += 2*math.pi
-            
             # Print variables to analyse later
-            print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e, "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
+            print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e,
+                 "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
             
             # Wait until execution is needed 
             self.rate.sleep()
