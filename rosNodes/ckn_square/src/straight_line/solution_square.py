@@ -27,6 +27,7 @@ class square:
 
         # Define robot params:
         self.robot = {"R": 0.05, "L": 0.19, "xPos": 0, "yPos": 0, "theta": 0}
+        self.control = {"prevError": 0, "prevMeasure": 0, "diff": 0, "integ": 0, "limMax": 0, "limMin": 0, "d_t": 0}
 
     # Callbacks for wheel velocities and commands
     def wr_callback(self,msg):
@@ -144,19 +145,46 @@ class square:
         elif self.robot["theta"] < -math.pi:
             self.robot["theta"] += 2*math.pi
     
-    def pid_PoseController(self, x_e, y_e, theta_e, desAngle, d_t, kt = 0.5, ka = 0.2, kb = 0.4):
+    def pid_PoseController(self, desPos, desAngle, d_t, kP = 0.5, kI = 0.2, kD = 0.4):
         
+        # Error to desired position
+        x_e =  desPos[0] - self.robot["xPos"]
+        y_e =  desPos[1] - self.robot["yPos"]
+        
+        # ArcTan(x/y) = angle | desY - presentY, desX - presentX |
+        objectiveAngle = math.atan2(y_e, x_e)
         dist2Objective = math.hypot(x_e, y_e)
         alpha_e = desAngle - self.robot["theta"]
 
-        # Proportional to error
-        pVal = dist2Objective*kt
-        # Error integral
-            # Be careful with the integral windup
-        iVal += dist2Objective*d_t
-        # Rate of change of error
-        dVal =  
-
+        # Proportional to error ==========================
+        pVal = dist2Objective*kP
+        
+        # Error integral        ==========================
+        self.control["integ"] += kI*self.control["d_t"] *0.5*(dist2Objective + self.control["prevError"])
+        # Be careful with the integral windup
+        
+        limMinClamp, limMaxClamp = 0, 0
+        # Clamp integrator:
+        if(self.control["limMax"] > pVal):
+            limMaxClamp = self.control["limMax"] - pVal
+        else:
+            limMaxClamp = 0
+        if self.control["limMin"] < pVal:
+            limMinClamp = self.control["limMin"] - pVal
+        else:
+            limMinClamp = 0
+    
+        # Limit saturation:
+        if self.control["integ"] > limMinClamp:
+            self.control["integ"] = limMinClamp
+        elif self.control["integ"] > limMaxClamp:
+            self.control["integ"] = limMaxClamp
+        
+        # Rate of change of error   =======================
+        self.control["diff"] = 2*kD* dist2Objective - self.control["prevMeasure"] +
+                            2*() * kD
+        v = 10
+        omega = 10
         # Adjust to system's saturation
         if v > 0.6:
             v = 0.6
@@ -167,12 +195,24 @@ class square:
         elif omega < -math.pi/2:
             omega = -math.pi/2
 
+        # Update controller:
+        self.control["prevError"] = dist2Objective
+        self.control["prevMeasure"] = dist2Objective
+        self.control["integ"] = iVal
+
         return v, omega
 
 
-    def p_PoseController(self, x_e, y_e, theta_e, desAngle, kt = 0.5, ka = 0.2, kb = 0.4):
+    def p_PoseController(self, desPos, desAngle, kt = 0.5, ka = 0.2, kb = 0.4):
         # Control constants
+        # Error to desired position
+        x_e =  desPos[0] - self.robot["xPos"]
+        y_e =  desPos[1] - self.robot["yPos"]
         
+        # ArcTan(x/y) = angle | desY - presentY, desX - presentX |
+        objectiveAngle = math.atan2(y_e, x_e)
+        # Error to angle 2 desPoint
+        theta_e = objectiveAngle - self.robot ["theta"]
         # Distance to objective
         dist2Objective = math.hypot(x_e, y_e)
 
@@ -187,13 +227,12 @@ class square:
         # Limit vel output values
         if v > 0.6:
             v = 0.6
-        elif v < -0.6:
+        if v < -0.6:
             v = -0.6
         
         # Limit rotational vel output values
         if omega > math.pi/2:
             omega = math.pi/2
-        
         if omega < -math.pi/2:
             omega = -math.pi/2
         
@@ -213,7 +252,14 @@ class square:
         msg.angular.y = 0
         msg.angular.z = 0
 
+        # Start controller:
+        self.control["prevError"] = 0
+        self.control["prevMeasure"] = 0
+        self.control["diff"] = 0
+        self.control["integ"] = 0
+        self.control["d_t"] = 0
         
+        # Initialization
         x_e = 1
         y_e = 1
         
@@ -224,16 +270,9 @@ class square:
             d_t = current_time - last_time
             last_time = current_time
             
-            # Error to desired position
-            x_e =  desPos[0] - self.robot["xPos"]
-            y_e =  desPos[1] - self.robot["yPos"]
-            
-            # ArcTan(x/y) = angle | desY - presentY, desX - presentX |
-            objectiveAngle = math.atan2(y_e, x_e)
-            # Error to angle 2 desPoint
-            theta_e = objectiveAngle - self.robot["theta"]
+           
 
-            v, omega = self.p_PoseController(x_e, y_e, theta_e, desAngle)
+            v, omega = self.p_PoseController(desPos, desAngle)
         
             msg.linear.x = v
             msg.angular.z = omega
@@ -243,9 +282,12 @@ class square:
             # Robot estimation
             self.updateRobot(d_t)
 
+            # Control
+            self.control["d_t"] = d_t
+
             # Print variables to analyse later
-            print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e,
-                 "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
+            # print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e,
+            #      "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
             
             # Wait until execution is needed 
             self.rate.sleep()
