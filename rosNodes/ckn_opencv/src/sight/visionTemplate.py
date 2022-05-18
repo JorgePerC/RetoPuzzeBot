@@ -34,7 +34,7 @@ class VisionClass:
 
         # Output publisher
         try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "nv12"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
         except CvBridgeError as e:
             print(e)
 

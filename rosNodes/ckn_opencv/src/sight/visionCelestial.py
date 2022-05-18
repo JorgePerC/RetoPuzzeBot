@@ -18,7 +18,7 @@ class visionCelestial:
         self.bridge = CvBridge()
         
         # Subscriber: (to recieve an image) from the camera
-        self.image_sub = rospy.Subscriber("video_source/raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("video_source/raw", Image, self.callback)
         
         # Publisher: (to make the image cv2 compatible)
         self.image_pub = rospy.Publisher("cv2RawImg", Image, queue_size=10)
@@ -42,7 +42,7 @@ class visionCelestial:
         cv2.waitKey(3)
 
         try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "nv12"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
         except CvBridgeError as e:
             print(e)
 

@@ -51,7 +51,7 @@ I recommend writing those values on yout `.bashrc`. Bc this project is going to 
 
 ## Branches:
 * manchester -> Pull all the code from the original repo 
-    * Update submodule `git submodule update --init` followed by: `git submodule update --remote --merge`
+    * Update submodule `git submodule update --remote` followed by: `git submodule update --remote --merge`
 * hwdev -> develop course activities for Maltab/Python/C++
 
 
