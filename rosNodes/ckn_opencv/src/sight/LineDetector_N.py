@@ -55,7 +55,7 @@ class LineDetector:
         # Gray + blur
         grayImg = cv2.medianBlur(grayImg, 5)
         # Gray -> Threshold
-        ret, thresh = cv2.threshold(grayImg, 100, 255, cv2.THRESH_TOZERO) # , works great
+        ret, thresh = cv2.threshold(grayImg, 110, 0, cv2.THRESH_TOZERO_INV) # , works great
                                                     #cv2.THRESH_OTSU+cv2.THRESH_TOZERO) # cv2.THRESH_TOZERO, works great
                                                     # cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU
                                 
@@ -74,6 +74,9 @@ class LineDetector:
                 cv2.line(img, (x1, y1), (x2, y2), (255, 255 , 0), 3)
         
         return canny
+
+
+
 
     def stop (self):
         pass

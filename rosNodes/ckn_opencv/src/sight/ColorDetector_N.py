@@ -57,6 +57,7 @@ class ColorThreshold:
             print(e)
 
     def colorHSVThreshold(self, img):
+        img = cv2.medianBlur(img, 5)
 
         frameHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
