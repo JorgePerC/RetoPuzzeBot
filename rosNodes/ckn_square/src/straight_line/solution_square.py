@@ -181,8 +181,7 @@ class square:
             self.control["integ"] = limMaxClamp
         
         # Rate of change of error   =======================
-        self.control["diff"] = 2*kD* dist2Objective - self.control["prevMeasure"] +
-                            2*() * kD
+        self.control["diff"] = 2*kD* dist2Objective - self.control["prevMeasure"] + 2*() * kD
         v = 10
         omega = 10
         # Adjust to system's saturation
@@ -223,6 +222,8 @@ class square:
 
         v = kt*dist2Objective
         omega = kb*theta_e #ka*alpha + kb*beta #
+
+        print ("| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e, "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"])
     
         # Limit vel output values
         if v > 0.6:
@@ -237,6 +238,12 @@ class square:
             omega = -math.pi/2
         
         return v, omega
+    
+    def robotIsClose(self, desPos, range):
+        x = True if desPos[0] - range < self.robot["xPos"] < desPos[0] + range else False
+        y = True if desPos[1] - range < self.robot["yPos"] < desPos[1] + range else False
+
+        return True if x and y else False
         
     def go2Pose(self, desPos, desAngle):
         
@@ -259,18 +266,12 @@ class square:
         self.control["integ"] = 0
         self.control["d_t"] = 0
         
-        # Initialization
-        x_e = 1
-        y_e = 1
-        
-        while not (abs(x_e) <= 0.1 and abs(y_e) <= 0.1):
+        while not self.robotIsClose(desPos, 0.1):
 
             # Compute time since last loop
             current_time = rospy.get_time()
             d_t = current_time - last_time
             last_time = current_time
-            
-           
 
             v, omega = self.p_PoseController(desPos, desAngle)
         
@@ -286,8 +287,7 @@ class square:
             self.control["d_t"] = d_t
 
             # Print variables to analyse later
-            # print("vel:", msg.linear.x, "| ang:", msg.angular.z, "| x_e:", x_e, "| y_e:", y_e, "| theta_e:", theta_e,
-            #      "| x:", self.robot["xPos"], "| y:", self.robot["yPos"], "| theta:", self.robot["theta"] )
+            print("vel:", msg.linear.x, "| ang:", msg.angular.z)
             
             # Wait until execution is needed 
             self.rate.sleep()
