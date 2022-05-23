@@ -42,7 +42,7 @@ def linesProbalistic(frame):
     img = frame.copy()
     img =cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     
-    lines = cv2.HoughLinesP(frame, rho = 6, theta = np.pi/180, threshold = 350, maxLineGap=80)
+    lines = cv2.HoughLinesP(frame, rho = 6, theta = np.pi/180, threshold = 300, maxLineGap=80)
 
     # draw Hough lines
     if lines is not None:
@@ -53,14 +53,14 @@ def linesProbalistic(frame):
     return img
 
 
-def verticalSplitImg(frame, ratio):
+def verticalSplitImg(frame, ratio, quarter = 1):
 
-    dif = ratio-1
+    dif = ratio-quarter
     # height calculus:
-    h = frame.shape[0]/ratio
-    ceros = np.zeros((int(h), frame.shape[1]), dtype = np.uint8)
+    h = int(frame.shape[0]/ratio)
+    ceros = np.zeros((h*dif, frame.shape[1]), dtype = np.uint8)
 
-    ones = np.ones((int(h)*dif, frame.shape[1]), dtype = np.uint8)
+    ones = np.ones((h*quarter, frame.shape[1]), dtype = np.uint8)
 
     myMask = np.concatenate((ceros, ones), axis = 0)
 
@@ -79,7 +79,7 @@ while cap.isOpened():
     # To limit our working area
     # In this case, we'll be working with only
     # the upper part of the image, to reduce noise
-    frame = verticalSplitImg(frame, 3)
+    frame = verticalSplitImg(frame, 5, 2)
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     # Limit colors:
@@ -98,7 +98,7 @@ while cap.isOpened():
     # Find inital line segments ==================
     canny = cv2.Canny(thresh, 100, 200) 
     # Find lines
-    hough = linesProbalistic(canny)
+    hough = lines(canny)
 
     # Merge all images into a sigle one
     grayImg = cv2.cvtColor(grayImg, cv2.COLOR_GRAY2BGR)
