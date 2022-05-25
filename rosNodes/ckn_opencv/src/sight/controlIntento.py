@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from threading import ThreadError
-from cv2 import threshold
+from cv2 import split, threshold
+from yaml import load
 import rospy
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
@@ -40,7 +41,7 @@ class LineDetector:
             print(e)
 
         #TODO: MANIPULATE THE IMAGE AS YOU'D LIKE
-        result = self.sectionControl(cv_image)
+        result = self.sectionControl(cv_image, 10, 3)
 
         cv2.imshow("Image window", result)
         cv2.waitKey(3)
@@ -51,24 +52,31 @@ class LineDetector:
         except CvBridgeError as e:
             print(e)
 
-    def sectionControl(self, frame):
+    def sectionControl(self, frame, splits, sections2Analyse = 1):
         frame = cv2.resize(frame, (720,480))
-        frame = self.verticalSplitImg(frame, 10, 9)
+        frame = self.verticalSplitImg(frame, splits, splits- sections2Analyse)
         grayImg = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # Gray + blur
         grayImg = cv2.medianBlur(grayImg, 7)
         # Gray -> Threshold
-        ret, thresh = cv2.threshold(grayImg, 90, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU) # , works great THRESH_TOZERO_INV
-                                                    #cv2.THRESH_OTSU+cv2.THRESH_TOZERO) # cv2.THRESH_TOZERO, works great
-                                                    # cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU
+        ret, thresh = cv2.threshold(grayImg, 90, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU) 
         
         kernel = np.ones((5, 5), np.uint8)
 
-        thresh = cv2.erode(thresh, kernel, iterations= 3)
+        thresh = cv2.erode(thresh, kernel, iterations= 2)
         
-        res = self.drawMiddleLineBlob(thresh)
+        sectors = []
+        for i in range(sections2Analyse): 
+            section = self.verticalSplitImg_gray(thresh, ratio= sections2Analyse, specificSegm= i)
+            sectionRes = self.drawMiddleLineBlob(section)
+            sectors.append(sectionRes)
+        print("=====")
+        #sectors = sectors[-1: : -1]        
 
-        return res
+        result = np.concatenate(sectors, axis = 0)
+
+        
+        return result
 
     def linesProbalistic(self, frame):
         frame = cv2.resize(frame, (720,480))
@@ -160,18 +168,35 @@ class LineDetector:
         
         # height calculus:
         h = int(frame.shape[0]/ratio)
-
-        frame = frame[h*remSegm : -1, :, :]
-
+        
+        frame = frame[h*remSegm : -1, :, :] 
+        
         return frame
     
+    def verticalSplitImg_gray(self, frame, ratio, specificSegm = 1):
+        # height calculus:
+        h = int(frame.shape[0]/ratio)
+
+        d = specificSegm+1  
+        frame = frame[h*(specificSegm): h*d, :]
+        print(frame.shape, ratio, specificSegm-1, d)
+        return frame
+    
+    
     def drawMiddleLineBlob(self, thresh):
+        # Erode one more time
+        kernel = np.ones((3, 3), np.uint8)
+        thresh = cv2.erode(thresh, kernel, iterations= 1)
         
         # Get the upper x coordinates
         xFirstChange = []
         xLastChange = []
         last_p = 0
         for p in range(thresh.shape[1]):
+            # Add a change when last one is 1
+            if p == thresh.shape[1]-1 and thresh[0, p] == 1:
+                xFirstChange.append(p)
+            # Chech if a change is present
             if last_p != thresh[0, p]:
                 xFirstChange.append(p)
             last_p = thresh[0, p]
@@ -179,22 +204,32 @@ class LineDetector:
         # Second part
         last_p = 0
         for p in range(thresh.shape[1]):
+            # Add a change when last one is 1
+            if p == thresh.shape[1]-1 and thresh[-1, p] >= 200:
+                xLastChange.append(p)
             if last_p != thresh[-1, p]:
                 xLastChange.append(p)
             last_p = thresh[-1, p]
-        print(len(xFirstChange), len(xLastChange))
 
+        # Return if # changes is different        
+        print(len(xFirstChange), len(xLastChange))
+        if len(xFirstChange) != len(xLastChange) or (len(xFirstChange)% 2 != 0 ):
+            return cv2.cvtColor(thresh, cv2.COLOR_BGRA2BGR)
+
+        # Convert coordinates to middle points
         upprdXs = []
         lowerdXs = []
 
-        for x in range(0, thresh.shape[1], 2):
-            print("   ", x)
-            upprdXs.append(((xFirstChange[x] + xFirstChange[x+1])/2, 0))
-        lowerdXs = [((xLastChange[x] + xLastChange[x+1])/2, 0) for x in range(0, thresh.shape[1], 2)]
+        upprdXs = [(int((xFirstChange[x] + xFirstChange[x+1])/2), 0) for x in range(0, len(xFirstChange), 2)]
+        lowerdXs = [(int((xLastChange[x] + xLastChange[x+1]))/2, thresh.shape[0]) for x in range(0, len(xLastChange), 2)]
 
+        # Draw lines
         res  = cv2.cvtColor(thresh, cv2.COLOR_BGRA2BGR)
-        for i in len(lowerdXs):
-            cv2.line(res, (upprdXs[i], 0), (lowerdXs[i], thresh.shape[0]), (255, 100 , 0), 3)
+        slopes = []
+        for i in range(len(lowerdXs)):
+            cv2.line(res, upprdXs[i], lowerdXs[i], (255, 255 , 0), 3)
+            # Calculate and append slope
+            slopes.append( float( (upprdXs[i][1]+lowerdXs[i][1]) /(upprdXs[i][0]+lowerdXs[i][0])))
 
         return res
     def stop (self):
