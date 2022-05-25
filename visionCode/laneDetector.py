@@ -75,6 +75,7 @@ white2 = np.array([180, 10, 0], np.uint8)
 
 while cap.isOpened():
     ret, frame = cap.read()
+    print("Shape:", frame.shape)
 
     # To limit our working area
     # In this case, we'll be working with only

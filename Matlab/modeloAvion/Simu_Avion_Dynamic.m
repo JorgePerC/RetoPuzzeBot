@@ -5,7 +5,7 @@ clc
 global plane envirmnt
 
     % gama, psi, vel, mass, theta, x, y, z
-plane = [ 0,  0,   0,    1,     0, 0, 0, 0];
+plane = [ 0,  0,   0,    10,     0, 0, 0, 0];
 
             %  g, p, S, C_d, v_fluid
 envirmnt = [9.81, 1, 1,   1,       1];
@@ -28,7 +28,7 @@ xp = 0;
 yp = 0;
 zp = 0;
 
-kp = 0.5;
+kp = .1;
 
 % Velocidad deseada
 ref = 10;
@@ -40,8 +40,8 @@ while t < Tf
 
     D = 0.1*plane(3)^2;
     % Control
-                        % z                     g*sin(gama)*mass
-    thrust = ( kp*(ref - plane(8))  + envirmnt(1)*sin(plane(1)) )   *plane(4) + D;
+             % mass        z                     g*sin(gama)
+    thrust = plane(4)*kp*(ref - plane(3))  + envirmnt(1)*sin(plane(1)) + D;
 
 
     % plane vel
@@ -71,4 +71,7 @@ while t < Tf
     axis([-100 100,-100 100,-100 100]);
 
     t = t + dt;
+    if (plane(3) == ref)
+        break;
+    end
 end
