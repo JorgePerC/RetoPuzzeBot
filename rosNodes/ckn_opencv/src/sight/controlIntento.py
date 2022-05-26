@@ -70,12 +70,9 @@ class LineDetector:
             section = self.verticalSplitImg_gray(thresh, ratio= sections2Analyse, specificSegm= i)
             sectionRes = self.drawMiddleLineBlob(section)
             sectors.append(sectionRes)
-        print("=====")
-        #sectors = sectors[-1: : -1]        
-
+        
         result = np.concatenate(sectors, axis = 0)
 
-        
         return result
 
     def linesProbalistic(self, frame):
@@ -179,14 +176,14 @@ class LineDetector:
 
         d = specificSegm+1  
         frame = frame[h*(specificSegm): h*d, :]
-        print(frame.shape, ratio, specificSegm-1, d)
+        
         return frame
     
     
     def drawMiddleLineBlob(self, thresh):
         # Erode one more time
         kernel = np.ones((3, 3), np.uint8)
-        thresh = cv2.erode(thresh, kernel, iterations= 1)
+        thresh = cv2.erode(thresh, kernel, iterations= 2)
         
         # Get the upper x coordinates
         xFirstChange = []
@@ -211,9 +208,10 @@ class LineDetector:
                 xLastChange.append(p)
             last_p = thresh[-1, p]
 
-        # Return if # changes is different        
-        print(len(xFirstChange), len(xLastChange))
-        if len(xFirstChange) != len(xLastChange) or (len(xFirstChange)% 2 != 0 ):
+        # Return if # changes is non par      
+        
+        #print(len(xFirstChange), len(xLastChange))
+        if (len(xFirstChange)% 2 != 0 ) or (len(xLastChange)% 2 != 0 ):
             return cv2.cvtColor(thresh, cv2.COLOR_BGRA2BGR)
 
         # Convert coordinates to middle points
@@ -224,12 +222,17 @@ class LineDetector:
         lowerdXs = [(int((xLastChange[x] + xLastChange[x+1]))/2, thresh.shape[0]) for x in range(0, len(xLastChange), 2)]
 
         # Draw lines
-        res  = cv2.cvtColor(thresh, cv2.COLOR_BGRA2BGR)
-        slopes = []
-        for i in range(len(lowerdXs)):
-            cv2.line(res, upprdXs[i], lowerdXs[i], (255, 255 , 0), 3)
-            # Calculate and append slope
-            slopes.append( float( (upprdXs[i][1]+lowerdXs[i][1]) /(upprdXs[i][0]+lowerdXs[i][0])))
+        try:
+            res  = cv2.cvtColor(thresh, cv2.COLOR_BGRA2BGR)
+            slopes = []
+            # decide lower count, to draw only those lines
+            low = len(lowerdXs) if len(lowerdXs) <= len(upprdXs) else len(upprdXs)
+            for i in range(low):
+                cv2.line(res, upprdXs[i], lowerdXs[i], (255, 255 , 0), 3)
+                # Calculate and append slope
+                slopes.append( float( (upprdXs[i][1]+lowerdXs[i][1]) /(upprdXs[i][0]+lowerdXs[i][0])))
+        except:
+            pass
 
         return res
     def stop (self):
